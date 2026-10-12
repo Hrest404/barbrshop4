@@ -390,16 +390,16 @@ Mini App ────┘
 
 ## Задачи
 
-- [ ] Загрузить репозиторий в GitHub.
+- [x] Загрузить репозиторий в GitHub.
 - [ ] Создать Vercel project для `apps/web`.
 - [ ] Создать Vercel project для `apps/miniapp`.
-- [ ] Создать Vercel project для `apps/api`.
+- [ ] Развернуть `apps/api` (Render / Railway / VPS / Docker).
 - [ ] Добавить environment variables.
-- [ ] Подключить production API URL к web.
-- [ ] Подключить production API URL к Mini App.
-- [ ] Настроить CORS production.
-- [ ] Настроить Telegram webhook.
-- [ ] Настроить production Mini App URL.
+- [x] Подключить production API URL к web (через NEXT_PUBLIC_API_URL).
+- [x] Подключить production API URL к Mini App (через VITE_API_URL).
+- [x] Настроить CORS production (через CORS_ORIGIN).
+- [x] Настроить Telegram webhook endpoint.
+- [ ] Настроить production Mini App URL в BotFather.
 - [ ] Проверить Supabase Cron.
 - [ ] Проверить Edge Function.
 - [ ] Провести E2E сценарий сайта.
