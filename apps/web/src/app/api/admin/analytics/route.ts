@@ -17,13 +17,13 @@ export async function GET(req: NextRequest) {
     include: { services: true, client: true },
   })
 
-  const confirmed = allBookings.filter(b => b.status === 'confirmed' || b.status === 'completed')
-  const completed = allBookings.filter(b => b.status === 'completed')
-  const cancelled = allBookings.filter(b => b.status === 'cancelled')
-  const noShow = allBookings.filter(b => b.status === 'no_show')
+  const confirmed = allBookings.filter((b: any) => b.status === 'confirmed' || b.status === 'completed')
+  const completed = allBookings.filter((b: any) => b.status === 'completed')
+  const cancelled = allBookings.filter((b: any) => b.status === 'cancelled')
+  const noShow = allBookings.filter((b: any) => b.status === 'no_show')
 
   // ── Выручка ────────────────────────────────────────────────────────────────
-  const revenue = completed.reduce((sum, b) => sum + Number(b.total_price), 0)
+  const revenue = completed.reduce((sum: number, b: any) => sum + Number(b.total_price), 0)
 
   // ── Количество записей ─────────────────────────────────────────────────────
   const totalBookings = allBookings.length
