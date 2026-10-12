@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model barbers {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String
+  photo_url        String?
+  bio              String?
+  experience_years Int?
+  telegram_chat_id String?
+  is_active        Boolean           @default(true)
+  sort_order       Int               @default(0)
+  
+  services         barber_services[]
+  working_hours    working_hours[]
+  breaks           breaks[]
+  portfolio        portfolio_items[]
+  reviews          reviews[]
+  bookings         bookings[]
+}
+
+model portfolio_items {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  barber_id  String  @db.Uuid
+  image_url  String
+  sort_order Int     @default(0)
+  
+  barber     barbers @relation(fields: [barber_id], references: [id], onDelete: Cascade)
+}
+
+model services {
+  id           String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String
+  description  String?
+  duration_min Int
+  price        Decimal           @db.Decimal(10, 2)
+  is_active    Boolean           @default(true)
+  sort_order   Int               @default(0)
+  
+  barbers      barber_services[]
+}
+
+model barber_services {
+  barber_id    String   @db.Uuid
+  service_id   String   @db.Uuid
+  duration_min Int?
+  price        Decimal? @db.Decimal(10, 2)
+  is_enabled   Boolean  @default(true)
+  
+  barber       barbers  @relation(fields: [barber_id], references: [id], onDelete: Cascade)
+  service      services @relation(fields: [service_id], references: [id], onDelete: Cascade)
+  
+  @@id([barber_id, service_id])
+}
+
+model working_hours {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  barber_id  String   @db.Uuid
+  weekday    Int     // 0=Sun, 1=Mon, ..., 6=Sat
+  start_time DateTime @db.Time
+  end_time   DateTime @db.Time
+  
+  barber     barbers  @relation(fields: [barber_id], references: [id], onDelete: Cascade)
+  
+  @@unique([barber_id, weekday])
+}
+
+model breaks {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  barber_id  String   @db.Uuid
+  weekday    Int
+  start_time DateTime @db.Time
+  end_time   DateTime @db.Time
+  
+  barber     barbers  @relation(fields: [barber_id], references: [id], onDelete: Cascade)
+}
+
+model time_off {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  barber_id String?  @db.Uuid
+  starts_at DateTime @db.Timestamptz
+  ends_at   DateTime @db.Timestamptz
+  type      String
+  note      String?
+}
+
+model clients {
+  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String
+  phone            String     @unique
+  telegram_id      String?    @unique
+  telegram_chat_id String?
+  created_at       DateTime   @default(now()) @db.Timestamptz
+  
+  bookings         bookings[]
+  reviews          reviews[]
+}
+
+model bookings {
+  id                   String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  client_id            String             @db.Uuid
+  barber_id            String             @db.Uuid
+  starts_at            DateTime           @db.Timestamptz
+  ends_at              DateTime           @db.Timestamptz
+  total_price          Decimal            @db.Decimal(10, 2)
+  total_duration_min   Int
+  status               String             // confirmed, completed, cancelled, no_show
+  source               String             // web, telegram, admin
+  manage_token         String             @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at           DateTime           @default(now()) @db.Timestamptz
+  
+  reminder_day_sent_at DateTime?          @db.Timestamptz
+  reminder_30m_sent_at DateTime?          @db.Timestamptz
+  review_requested_at  DateTime?          @db.Timestamptz
+  auto_completed_at    DateTime?          @db.Timestamptz
+  
+  client               clients            @relation(fields: [client_id], references: [id])
+  barber               barbers            @relation(fields: [barber_id], references: [id])
+  services             booking_services[]
+  reviews              reviews[]
+}
+
+model booking_services {
+  booking_id   String  @db.Uuid
+  service_id   String  @db.Uuid
+  name         String
+  duration_min Int
+  price        Decimal @db.Decimal(10, 2)
+  
+  booking      bookings @relation(fields: [booking_id], references: [id], onDelete: Cascade)
+  
+  @@id([booking_id, service_id])
+}
+
+model reviews {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  booking_id String   @db.Uuid
+  barber_id  String   @db.Uuid
+  client_id  String   @db.Uuid
+  rating     Int      @db.SmallInt
+  comment    String?
+  is_public  Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamptz
+  
+  booking    bookings @relation(fields: [booking_id], references: [id], onDelete: Cascade)
+  barber     barbers  @relation(fields: [barber_id], references: [id], onDelete: Cascade)
+  client     clients  @relation(fields: [client_id], references: [id], onDelete: Cascade)
+}
+
+model settings {
+  key   String @id
+  value String
+}
+
+model admin_users {
+  id               String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  login            String  @unique
+  password_hash    String
+  telegram_chat_id String?
+}

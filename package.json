@@ -1,0 +1,27 @@
+{
+  "name": "barbershop",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=web\" \"npm run dev --workspace=api\" \"npm run dev --workspace=miniapp\" \"npm run dev --workspace=bot\"",
+    "deploy:functions": "supabase functions deploy notifications --no-verify-jwt",
+    "create:admin": "tsx apps/web/src/scripts/create-admin.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "devDependencies": {
+    "@prisma/client": "^7.10.0",
+    "concurrently": "^10.0.5",
+    "prisma": "^7.10.0",
+    "tsx": "^4.23.15"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.10.0",
+    "pg": "^8.23.1"
+  }
+}

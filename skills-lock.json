@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "frontend-atlas": {
+      "source": "flash-hero/GOATED-UI-SKILL",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-atlas/SKILL.md",
+      "computedHash": "a60de48a0ec225b31f2c9d2f200be1c7b76e5b04d008f0ec7f87f04014744676"
+    }
+  }
+}
