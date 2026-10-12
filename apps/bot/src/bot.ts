@@ -10,7 +10,7 @@ export const bot = new Bot(BOT_TOKEN)
 
 // ── /start ─────────────────────────────────────────────────────────────────
 
-bot.command('start', async (ctx) => {
+bot.command('start', async (ctx: any) => {
   const payload = ctx.match // e.g. "b_<token>" for deep link
 
   // Deep link: /start b_<manage_token>
@@ -32,7 +32,7 @@ bot.command('start', async (ctx) => {
     const timeStr = date.toLocaleTimeString('ru-RU', {
       hour: '2-digit', minute: '2-digit', timeZone: 'UTC',
     })
-    const servicesList = booking.services.map(s => `• ${s.name}`).join('\n')
+    const servicesList = booking.services.map((s: any) => `• ${s.name}`).join('\n')
 
     const keyboard = new InlineKeyboard()
       .url('🌐 Управление записью', `${APP_URL}/booking/${token}`)
@@ -75,12 +75,12 @@ bot.command('start', async (ctx) => {
 
 // ── Команды меню ────────────────────────────────────────────────────────────
 
-bot.command('mybookings', (ctx) => ctx.reply('Загружаю ваши записи...').then(() => showMyBookings(ctx)))
-bot.command('book', async (ctx) => {
+bot.command('mybookings', (ctx: any) => ctx.reply('Загружаю ваши записи...').then(() => showMyBookings(ctx)))
+bot.command('book', async (ctx: any) => {
   const keyboard = new InlineKeyboard().url('✂️ Открыть форму записи', APP_URL)
   return ctx.reply('Нажмите кнопку ниже, чтобы записаться:', { reply_markup: keyboard })
 })
-bot.command('help', async (ctx) => {
+bot.command('help', async (ctx: any) => {
   return ctx.reply(
     `ℹ️ <b>Команды бота:</b>\n\n` +
     `/start — Главное меню\n` +
@@ -93,7 +93,7 @@ bot.command('help', async (ctx) => {
 
 // ── Привязка барбера ─────────────────────────────────────────────────────────
 
-bot.command('linkbarber', async (ctx) => {
+bot.command('linkbarber', async (ctx: any) => {
   // Команда: /linkbarber <secret>
   // Секрет хранится в settings: key='barber_link_secret'
   const parts = ctx.message?.text?.split(' ') ?? []
@@ -128,7 +128,7 @@ bot.command('linkbarber', async (ctx) => {
 
 // ── Inline-кнопки ───────────────────────────────────────────────────────────
 
-bot.callbackQuery('my_bookings', async (ctx) => {
+bot.callbackQuery('my_bookings', async (ctx: any) => {
   await ctx.answerCallbackQuery()
   await showMyBookings(ctx)
 })

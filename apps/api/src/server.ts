@@ -14,7 +14,8 @@ const server = Fastify({
 })
 
 server.register(cors, {
-  origin: '*', // For development
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*',
+  credentials: true,
 })
 
 // Error handler
@@ -102,8 +103,8 @@ server.post('/api/v1/bookings', async (request, reply) => {
   const services = await prisma.services.findMany({
     where: { id: { in: body.serviceIds } }
   })
-  const totalDuration = services.reduce((sum, s) => sum + s.duration_min, 0)
-  const totalPrice = services.reduce((sum, s) => sum + Number(s.price), 0)
+  const totalDuration = services.reduce((sum: number, s: any) => sum + s.duration_min, 0)
+  const totalPrice = services.reduce((sum: number, s: any) => sum + Number(s.price), 0)
 
   // 2. Считаем starts_at и ends_at
   const startsAt = new Date(`${body.date}T${body.time}:00Z`)
@@ -129,7 +130,7 @@ server.post('/api/v1/bookings', async (request, reply) => {
         status: 'confirmed',
         source: 'web',
         services: {
-          create: services.map(s => ({
+          create: services.map((s: any) => ({
             service_id: s.id,
             name: s.name,
             duration_min: s.duration_min,
@@ -272,7 +273,8 @@ server.post('/telegram/webhook', async (request, reply) => {
   // Delegate to the bot's webhook handler
   try {
     const { webhookCallback } = await import('grammy')
-    const { default: botInstance } = await import('../../bot/src/bot')
+    const botModule = await import('../../bot/src/bot')
+    const botInstance = (botModule as any).bot || (botModule as any).default
     const handler = webhookCallback(botInstance, 'fastify')
     return handler(request as any, reply as any)
   } catch (err) {

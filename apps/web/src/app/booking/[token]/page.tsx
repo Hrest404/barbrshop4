@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
+
 export default function ManageBookingPage() {
   const { token } = useParams()
   const [booking, setBooking] = useState<any>(null)
@@ -12,7 +14,7 @@ export default function ManageBookingPage() {
   const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/v1/bookings/${token}`)
+    fetch(`${API_URL}/bookings/${token}`)
       .then(res => {
         if (!res.ok) throw new Error('Запись не найдена')
         return res.json()
@@ -31,7 +33,7 @@ export default function ManageBookingPage() {
     if (!confirm('Вы уверены, что хотите отменить запись?')) return
     setActionLoading(true)
     try {
-      const res = await fetch(`http://localhost:4000/api/v1/bookings/${token}/cancel`, {
+      const res = await fetch(`${API_URL}/bookings/${token}/cancel`, {
         method: 'POST'
       })
       if (!res.ok) {

@@ -15,6 +15,8 @@ type BookingData = {
   phone: string;
 };
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+
 export default function BookPage() {
   const [step, setStep] = useState(1);
   const [data, setData] = useState<BookingData>({
@@ -38,14 +40,14 @@ export default function BookPage() {
   const [manageToken, setManageToken] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/v1/services")
+    fetch(`${API_URL}/services`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setServices(data);
       })
       .catch(console.error);
       
-    fetch("http://localhost:4000/api/v1/barbers")
+    fetch(`${API_URL}/barbers`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -61,7 +63,7 @@ export default function BookPage() {
   // Загружаем доступные дни при переходе на шаг 3
   useEffect(() => {
     if (step === 3 && data.serviceId) {
-      let url = `http://localhost:4000/api/v1/availability/days?serviceIds=${data.serviceId}`;
+      let url = `${API_URL}/availability/days?serviceIds=${data.serviceId}`;
       if (data.barberId && data.barberId !== 'any') {
         url += `&barberId=${data.barberId}`;
       }
@@ -77,7 +79,7 @@ export default function BookPage() {
   // Загружаем доступные слоты при выборе даты
   useEffect(() => {
     if (step === 3 && data.date && data.serviceId) {
-      let url = `http://localhost:4000/api/v1/availability?date=${data.date}&serviceIds=${data.serviceId}`;
+      let url = `${API_URL}/availability?date=${data.date}&serviceIds=${data.serviceId}`;
       if (data.barberId && data.barberId !== 'any') {
         url += `&barberId=${data.barberId}`;
       }
@@ -105,7 +107,7 @@ export default function BookPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:4000/api/v1/bookings", {
+      const res = await fetch(`${API_URL}/bookings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
