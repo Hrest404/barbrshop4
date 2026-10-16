@@ -1,5 +1,6 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
+import crypto from 'crypto'
 import { prisma } from './prisma'
 import { getAvailableDays, getAvailableSlots } from './availability'
 import {
@@ -9,27 +10,28 @@ import {
   notifyBarberNewBooking,
 } from '../../bot/src/notifications'
 
-const server = Fastify({
+const app = Fastify({
   logger: true,
 })
 
-server.register(cors, {
+app.register(cors, {
   origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*',
   credentials: true,
 })
 
 // Error handler
-server.setErrorHandler((error, request, reply) => {
-  server.log.error(error)
+app.setErrorHandler((error, request, reply) => {
+  app.log.error(error)
   reply.status(500).send({ error: 'Something went wrong' })
 })
 
 // Routes
-server.get('/health', async () => {
-  return { status: 'ok' }
+// Health check: responds 200 without database or telegram dependencies
+app.get('/health', async () => {
+  return { ok: true }
 })
 
-server.get('/api/v1/services', async () => {
+app.get('/api/v1/services', async () => {
   const services = await prisma.services.findMany({
     where: { is_active: true },
     orderBy: { sort_order: 'asc' },
@@ -37,7 +39,7 @@ server.get('/api/v1/services', async () => {
   return services
 })
 
-server.get('/api/v1/barbers', async () => {
+app.get('/api/v1/barbers', async () => {
   const barbers = await prisma.barbers.findMany({
     where: { is_active: true },
     orderBy: { sort_order: 'asc' },
@@ -50,7 +52,7 @@ server.get('/api/v1/barbers', async () => {
   return barbers
 })
 
-server.get('/api/v1/barbers/:id', async (request, reply) => {
+app.get('/api/v1/barbers/:id', async (request, reply) => {
   const { id } = request.params as { id: string }
   const barber = await prisma.barbers.findUnique({
     where: { id },
@@ -69,7 +71,8 @@ server.get('/api/v1/barbers/:id', async (request, reply) => {
   }
   return barber
 })
-server.get('/api/v1/availability/days', async (request, reply) => {
+
+app.get('/api/v1/availability/days', async (request, reply) => {
   const query = request.query as { barberId?: string; serviceIds: string }
   if (!query.serviceIds) {
     return reply.status(400).send({ error: 'serviceIds is required' })
@@ -79,7 +82,7 @@ server.get('/api/v1/availability/days', async (request, reply) => {
   return { days }
 })
 
-server.get('/api/v1/availability', async (request, reply) => {
+app.get('/api/v1/availability', async (request, reply) => {
   const query = request.query as { date: string; barberId?: string; serviceIds: string }
   if (!query.date || !query.serviceIds) {
     return reply.status(400).send({ error: 'date and serviceIds are required' })
@@ -89,7 +92,7 @@ server.get('/api/v1/availability', async (request, reply) => {
   return { slots }
 })
 
-server.post('/api/v1/bookings', async (request, reply) => {
+app.post('/api/v1/bookings', async (request, reply) => {
   const body = request.body as {
     serviceIds: string[]
     barberId: string
@@ -146,11 +149,9 @@ server.post('/api/v1/bookings', async (request, reply) => {
 
     return booking
   } catch (err: any) {
-    // 23P01 is PostgreSQL's exclude constraint violation code (our btree_gist_overlap constraint)
     if (err.code === 'P2010' && err.meta?.code === '23P01') {
       return reply.status(409).send({ error: 'SLOT_TAKEN' })
     }
-    // Also handle Prisma's specific error code for raw queries if it surfaces differently
     if (err.message?.includes('bookings_no_overlap')) {
       return reply.status(409).send({ error: 'SLOT_TAKEN' })
     }
@@ -158,9 +159,7 @@ server.post('/api/v1/bookings', async (request, reply) => {
   }
 })
 
-import crypto from 'crypto'
-
-server.post('/api/v1/auth/telegram', async (request, reply) => {
+app.post('/api/v1/auth/telegram', async (request, reply) => {
   const { initData } = request.body as { initData: string }
   if (!initData) return reply.status(400).send({ error: 'Missing initData' })
 
@@ -188,7 +187,7 @@ server.post('/api/v1/auth/telegram', async (request, reply) => {
   }
 })
 
-server.get('/api/v1/bookings/:token', async (request, reply) => {
+app.get('/api/v1/bookings/:token', async (request, reply) => {
   const { token } = request.params as { token: string }
   const booking = await prisma.bookings.findUnique({
     where: { manage_token: token },
@@ -204,7 +203,7 @@ server.get('/api/v1/bookings/:token', async (request, reply) => {
   return booking
 })
 
-server.post('/api/v1/bookings/:token/cancel', async (request, reply) => {
+app.post('/api/v1/bookings/:token/cancel', async (request, reply) => {
   const { token } = request.params as { token: string }
   
   const booking = await prisma.bookings.findUnique({ where: { manage_token: token } })
@@ -212,8 +211,6 @@ server.post('/api/v1/bookings/:token/cancel', async (request, reply) => {
   if (booking.status === 'cancelled') return reply.status(400).send({ error: 'Already cancelled' })
   if (booking.status !== 'confirmed') return reply.status(400).send({ error: 'Cannot cancel' })
 
-  // В реальном приложении здесь можно проверять cancel_cutoff_min
-  
   const updated = await prisma.bookings.update({
     where: { manage_token: token },
     data: { status: 'cancelled' }
@@ -225,7 +222,7 @@ server.post('/api/v1/bookings/:token/cancel', async (request, reply) => {
   return updated
 })
 
-server.post('/api/v1/bookings/:token/reschedule', async (request, reply) => {
+app.post('/api/v1/bookings/:token/reschedule', async (request, reply) => {
   const { token } = request.params as { token: string }
   const body = request.body as { date: string; time: string }
   
@@ -266,7 +263,7 @@ server.post('/api/v1/bookings/:token/reschedule', async (request, reply) => {
 // ── Telegram webhook (production mode) ──────────────────────────────────────
 // In development the bot runs separately via long-polling (apps/bot).
 // In production Telegram sends updates to POST /telegram/webhook.
-server.post('/telegram/webhook', async (request, reply) => {
+app.post('/telegram/webhook', async (request, reply) => {
   const botToken = process.env.TELEGRAM_BOT_TOKEN
   if (!botToken) return reply.status(503).send({ error: 'Bot not configured' })
 
@@ -278,19 +275,16 @@ server.post('/telegram/webhook', async (request, reply) => {
     const handler = webhookCallback(botInstance, 'fastify')
     return handler(request as any, reply as any)
   } catch (err) {
-    server.log.error(err)
+    app.log.error(err)
     return reply.status(500).send({ error: 'Webhook error' })
   }
 })
 
-const start = async () => {
-  try {
-    await server.listen({ port: 4000, host: '0.0.0.0' })
-    console.log(`Server listening on http://localhost:4000`)
-  } catch (err) {
-    server.log.error(err)
-    process.exit(1)
-  }
-}
+// Listen without top-level await to avoid blocking serverless function invocations on Vercel
+const port = Number(process.env.PORT) || 4000
+const host = '0.0.0.0'
 
-start()
+app.listen({ port, host }).catch((err) => {
+  app.log.error(err)
+  process.exit(1)
+})
