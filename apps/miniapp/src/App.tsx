@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import WebApp from "@twa-dev/sdk";
+import WebApp from "./telegram.ts";
 import { Routes, Route, useNavigate, useParams } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api/v1";
@@ -61,9 +61,10 @@ function BookingFlow() {
   }, [data.date, data.serviceId, data.barberId, step]);
 
   useEffect(() => {
+    if (!WebApp.MainButton?.onClick) return;
     WebApp.MainButton.onClick(handleMainButtonClick);
     return () => {
-      WebApp.MainButton.offClick(handleMainButtonClick);
+      WebApp.MainButton?.offClick?.(handleMainButtonClick);
     };
   }, [step, data, availableSlots]);
 
@@ -72,24 +73,25 @@ function BookingFlow() {
   }, [step, data, isLoading]);
 
   const updateMainButton = () => {
+    if (!WebApp.MainButton) return;
     if (isLoading) {
-      WebApp.MainButton.showProgress();
+      WebApp.MainButton.showProgress?.();
       return;
     }
-    WebApp.MainButton.hideProgress();
+    WebApp.MainButton.hideProgress?.();
     
     if (step === 1 && data.serviceId) {
-      WebApp.MainButton.setText("Далее").show();
+      WebApp.MainButton.setText?.("Далее").show?.();
     } else if (step === 2 && data.barberId) {
-      WebApp.MainButton.setText("Далее").show();
+      WebApp.MainButton.setText?.("Далее").show?.();
     } else if (step === 3 && data.date && data.time) {
-      WebApp.MainButton.setText("Далее").show();
+      WebApp.MainButton.setText?.("Далее").show?.();
     } else if (step === 4 && data.name && data.phone) {
-      WebApp.MainButton.setText("Подтвердить").show();
+      WebApp.MainButton.setText?.("Подтвердить").show?.();
     } else if (step === 5) {
-      WebApp.MainButton.setText("Подтвердить запись").show();
+      WebApp.MainButton.setText?.("Подтвердить запись").show?.();
     } else {
-      WebApp.MainButton.hide();
+      WebApp.MainButton.hide?.();
     }
   };
 
@@ -128,11 +130,15 @@ function BookingFlow() {
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error === 'SLOT_TAKEN' ? 'Время занято' : 'Ошибка');
       
-      WebApp.MainButton.hide();
+      WebApp.MainButton?.hide?.();
       navigate(`/booking/${resData.manage_token}`);
     } catch (err: any) {
       setBookingError(err.message);
-      WebApp.showAlert(err.message);
+      if (typeof WebApp.showAlert === 'function') {
+        WebApp.showAlert(err.message);
+      } else {
+        alert(err.message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -243,7 +249,7 @@ function ManageBooking() {
     if (!WebApp.showConfirm) {
       if (!confirm('Отменить?')) return;
     } else {
-      WebApp.showConfirm('Отменить запись?', async (ok) => {
+      WebApp.showConfirm('Отменить запись?', async (ok: boolean) => {
         if (!ok) return;
         await cancel();
       });
@@ -255,7 +261,11 @@ function ManageBooking() {
   const cancel = async () => {
     await fetch(`${API_URL}/bookings/${token}/cancel`, { method: 'POST' });
     setBooking({ ...booking, status: 'cancelled' });
-    WebApp.showAlert('Запись отменена');
+    if (typeof WebApp.showAlert === 'function') {
+      WebApp.showAlert('Запись отменена');
+    } else {
+      alert('Запись отменена');
+    }
   };
 
   if (loading) return <div className="p-4 text-center">Загрузка...</div>;
